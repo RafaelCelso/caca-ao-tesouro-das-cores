@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import GameArea from './components/GameArea';
 import ScoreBoard from './components/ScoreBoard';
 import LevelUpMessage from './components/LevelUpMessage';
+import SoundControl from './components/SoundControl';
 import useSound from 'use-sound';
+import { SOUND_URLS } from './config/sounds';
 
 // Lista de cores disponíveis no jogo
 const CORES_DISPONIVEIS = [
@@ -20,9 +22,29 @@ function App() {
   const [corAlvo, setCorAlvo] = useState(CORES_DISPONIVEIS[0]);
   const [objetosRestantes, setObjetosRestantes] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [melhorPontuacao, setMelhorPontuacao] = useState(
     parseInt(localStorage.getItem('melhorPontuacao')) || 0
   );
+
+  // Configuração dos sons com volume ajustado e tratamento de erro
+  const [playAcerto] = useSound(SOUND_URLS.acerto, { 
+    volume: 0.5,
+    soundEnabled: !isMuted,
+    interrupt: true // Permite interromper o som se for tocado novamente
+  });
+  
+  const [playErro] = useSound(SOUND_URLS.erro, { 
+    volume: 0.3,
+    soundEnabled: !isMuted,
+    interrupt: true
+  });
+  
+  const [playLevelUp] = useSound(SOUND_URLS.levelUp, { 
+    volume: 0.5,
+    soundEnabled: !isMuted,
+    interrupt: true
+  });
 
   // Inicializa o jogo
   useEffect(() => {
@@ -51,6 +73,11 @@ function App() {
   };
 
   const handleAcerto = () => {
+    try {
+      playAcerto();
+    } catch (error) {
+      console.log('Erro ao tocar som de acerto:', error);
+    }
     setPontuacao(prev => prev + 10);
     setObjetosRestantes(prev => {
       const novosObjetosRestantes = prev - 1;
@@ -58,6 +85,11 @@ function App() {
         // Quando todos os objetos da cor foram encontrados
         setNivel(nivelAtual => {
           setShowLevelUp(true);
+          try {
+            playLevelUp();
+          } catch (error) {
+            console.log('Erro ao tocar som de level up:', error);
+          }
           return nivelAtual + 1;
         });
         return 0;
@@ -67,6 +99,11 @@ function App() {
   };
 
   const handleErro = () => {
+    try {
+      playErro();
+    } catch (error) {
+      console.log('Erro ao tocar som de erro:', error);
+    }
     if (pontuacao > 0) {
       setPontuacao(prev => Math.max(0, prev - 5));
     }
@@ -80,22 +117,38 @@ function App() {
     iniciarNovaRodada();
   };
 
+  const handleSoundToggle = (muted) => {
+    setIsMuted(muted);
+    localStorage.setItem('isMuted', muted.toString());
+  };
+
+  // Carrega a preferência de som ao iniciar
+  useEffect(() => {
+    const mutedPreference = localStorage.getItem('isMuted');
+    if (mutedPreference !== null) {
+      setIsMuted(mutedPreference === 'true');
+    }
+  }, []);
+
   return (
     <div className="h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col">
       <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
-        {/* Header com título e botão */}
+        {/* Header com título, botão de som e novo jogo */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
             🎨 Caça ao Tesouro das Cores
           </h1>
-          <button
-            onClick={reiniciarJogo}
-            className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold rounded-full 
-                     hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 
-                     shadow-lg hover:shadow-xl"
-          >
-            🔄 Novo Jogo
-          </button>
+          <div className="flex items-center gap-2">
+            <SoundControl onToggle={handleSoundToggle} />
+            <button
+              onClick={reiniciarJogo}
+              className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold rounded-full 
+                       hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 
+                       shadow-lg hover:shadow-xl"
+            >
+              🔄 Novo Jogo
+            </button>
+          </div>
         </div>
         
         <ScoreBoard 
