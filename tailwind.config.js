@@ -15,7 +15,14 @@ export default {
         'game-orange': '#FFA500',
       },
       animation: {
-        'bounce-short': 'bounce 0.5s ease-in-out',
+        'bounce-short': 'bounce 1s ease-in-out 2',
+        'scale-up': 'scaleUp 0.5s ease-out',
+      },
+      keyframes: {
+        scaleUp: {
+          '0%': { transform: 'scale(0.5) translateY(50px)', opacity: '0' },
+          '100%': { transform: 'scale(1) translateY(0)', opacity: '1' },
+        }
       }
     },
   },

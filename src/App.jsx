@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import GameArea from './components/GameArea';
 import ScoreBoard from './components/ScoreBoard';
+import LevelUpMessage from './components/LevelUpMessage';
 import useSound from 'use-sound';
 
 // Lista de cores disponíveis no jogo
@@ -18,6 +19,7 @@ function App() {
   const [nivel, setNivel] = useState(1);
   const [corAlvo, setCorAlvo] = useState(CORES_DISPONIVEIS[0]);
   const [objetosRestantes, setObjetosRestantes] = useState(0);
+  const [showLevelUp, setShowLevelUp] = useState(false);
   const [melhorPontuacao, setMelhorPontuacao] = useState(
     parseInt(localStorage.getItem('melhorPontuacao')) || 0
   );
@@ -54,7 +56,10 @@ function App() {
       const novosObjetosRestantes = prev - 1;
       if (novosObjetosRestantes <= 0) {
         // Quando todos os objetos da cor foram encontrados
-        setNivel(nivelAtual => nivelAtual + 1);
+        setNivel(nivelAtual => {
+          setShowLevelUp(true);
+          return nivelAtual + 1;
+        });
         return 0;
       }
       return novosObjetosRestantes;
@@ -71,6 +76,7 @@ function App() {
     setPontuacao(0);
     setNivel(1);
     setObjetosRestantes(0);
+    setShowLevelUp(false);
     iniciarNovaRodada();
   };
 
@@ -110,6 +116,13 @@ function App() {
             />
           </div>
         </div>
+
+        {showLevelUp && (
+          <LevelUpMessage 
+            nivel={nivel} 
+            onClose={() => setShowLevelUp(false)} 
+          />
+        )}
       </div>
     </div>
   );
