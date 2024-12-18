@@ -336,7 +336,7 @@ function App() {
         {/* Header com título, som e novo jogo */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-            🎨 Caça ao Tesouro das Cores
+            �� Caça ao Tesouro das Cores
           </h1>
           <div className="flex items-center gap-4">
             <SoundControl onToggle={handleSoundToggle} isMuted={isMuted} />
@@ -375,7 +375,7 @@ function App() {
         />
 
         {/* Área de vidas */}
-        <div className="mb-4 flex justify-end items-center gap-4">
+        <div className="mb-4 flex flex-wrap justify-end items-center gap-2">
           {tempoRestante > 0 && !showGameOver && (
             <div className="transform hover:scale-105 transition-transform">
               <BonusTimer 
