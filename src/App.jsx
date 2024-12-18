@@ -10,6 +10,7 @@ import DesafioDiario from './components/DesafioDiario';
 import Vidas, { MAX_VIDAS } from './components/Vidas';
 import ConquistaMessage from './components/ConquistaMessage';
 import GameOverMessage from './components/GameOverMessage';
+import BonusTimer from './components/BonusTimer';
 import useSound from 'use-sound';
 import { SOUND_URLS } from './config/sounds';
 
@@ -23,6 +24,9 @@ const CORES_DISPONIVEIS = [
   { nome: 'laranja', hex: '#FFA500' }
 ];
 
+const MAX_VIDAS_BONUS = 3;
+const NIVEL_MIN_BONUS = 5;
+
 function App() {
   const [pontuacao, setPontuacao] = useState(0);
   const [nivel, setNivel] = useState(1);
@@ -34,6 +38,7 @@ function App() {
   const [showError, setShowError] = useState(false);
   const [explosions, setExplosions] = useState([]);
   const [vidas, setVidas] = useState(MAX_VIDAS);
+  const [vidasBonus, setVidasBonus] = useState(0);
   const [badges, setBadges] = useState(() => {
     const savedBadges = localStorage.getItem('badges');
     return savedBadges ? JSON.parse(savedBadges) : [];
@@ -46,6 +51,8 @@ function App() {
   const [errosNoNivel, setErrosNoNivel] = useState(0);
   const [niveisConsecutivosSemErro, setNiveisConsecutivosSemErro] = useState(0);
   const [showGameOver, setShowGameOver] = useState(false);
+  const [timerPausado, setTimerPausado] = useState(false);
+  const [tempoRestante, setTempoRestante] = useState(10);
 
   // Configuração dos sons
   const [playAcerto] = useSound(SOUND_URLS.acerto, { 
@@ -148,6 +155,11 @@ function App() {
     }
   }, []);
 
+  // Pausa o timer quando há mensagens na tela
+  useEffect(() => {
+    setTimerPausado(showLevelUp || showConquista);
+  }, [showLevelUp, showConquista]);
+
   const escolherNovaCorAlvo = () => {
     const coresDisponiveis = CORES_DISPONIVEIS.filter(cor => cor.nome !== corAlvo.nome);
     const indiceAleatorio = Math.floor(Math.random() * coresDisponiveis.length);
@@ -220,6 +232,9 @@ function App() {
     setObjetosRestantes(prev => {
       const novosObjetosRestantes = prev - 1;
       if (novosObjetosRestantes <= 0) {
+        const tempoNivel = (Date.now() - tempoInicioNivel) / 1000;
+        setTempoRestante(0);
+        
         setNivel(nivelAtual => {
           setShowLevelUp(true);
           if (!isMuted) {
@@ -231,6 +246,9 @@ function App() {
           }
           if (errosNoNivel === 0) {
             setNiveisConsecutivosSemErro(prev => prev + 1);
+            if (tempoNivel < 10 && nivelAtual >= NIVEL_MIN_BONUS && vidasBonus < MAX_VIDAS_BONUS) {
+              setVidasBonus(prev => prev + 1);
+            }
           }
           return nivelAtual + 1;
         });
@@ -253,15 +271,19 @@ function App() {
     setTimeout(() => setShowError(false), 500);
 
     setErrosNoNivel(prev => prev + 1);
-    setNiveisConsecutivosSemErro(0); // Reseta a contagem de níveis consecutivos sem erro
+    setNiveisConsecutivosSemErro(0);
 
-    setVidas(prev => {
-      const novasVidas = prev - 1;
-      if (novasVidas <= 0) {
-        setShowGameOver(true);
-      }
-      return Math.max(0, novasVidas);
-    });
+    if (vidasBonus > 0) {
+      setVidasBonus(prev => prev - 1);
+    } else {
+      setVidas(prev => {
+        const novasVidas = prev - 1;
+        if (novasVidas <= 0) {
+          setShowGameOver(true);
+        }
+        return Math.max(0, novasVidas);
+      });
+    }
 
     if (pontuacao > 0) {
       setPontuacao(prev => Math.max(0, prev - 5));
@@ -278,6 +300,7 @@ function App() {
     setObjetosRestantes(0);
     setShowLevelUp(false);
     setVidas(MAX_VIDAS);
+    setVidasBonus(0);
     setErrosNoNivel(0);
     setNiveisConsecutivosSemErro(0);
     setTempoInicioNivel(Date.now());
@@ -298,6 +321,14 @@ function App() {
     }
   }, []);
 
+  // Atualiza o tempo restante quando inicia um novo nível
+  useEffect(() => {
+    if (tempoInicioNivel) {
+      const tempoPassado = (Date.now() - tempoInicioNivel) / 1000;
+      setTempoRestante(Math.max(0, 10 - tempoPassado));
+    }
+  }, [tempoInicioNivel]);
+
   return (
     <div className={`min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col
                     ${showError ? 'animate-shake' : ''}`}>
@@ -315,7 +346,7 @@ function App() {
                        hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 
                        shadow-lg hover:shadow-xl"
             >
-              🔄 Novo Jogo
+               Novo Jogo
             </button>
           </div>
         </div>
@@ -344,9 +375,19 @@ function App() {
         />
 
         {/* Área de vidas */}
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex justify-end items-center gap-4">
+          {tempoRestante > 0 && !showGameOver && (
+            <div className="transform hover:scale-105 transition-transform">
+              <BonusTimer 
+                tempoInicial={tempoInicioNivel}
+                isPaused={timerPausado}
+                nivel={nivel}
+                vidasBonus={vidasBonus}
+              />
+            </div>
+          )}
           <div className="transform hover:scale-105 transition-transform">
-            <Vidas vidas={vidas} />
+            <Vidas vidas={vidas} vidasBonus={vidasBonus} />
           </div>
         </div>
 
