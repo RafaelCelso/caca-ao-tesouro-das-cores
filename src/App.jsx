@@ -335,8 +335,11 @@ function App() {
       <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
         {/* Header com título, som e novo jogo */}
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-            �� Caça ao Tesouro das Cores
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <span>🎨</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+              Caça ao Tesouro das Cores
+            </span>
           </h1>
           <div className="flex items-center gap-4">
             <SoundControl onToggle={handleSoundToggle} isMuted={isMuted} />
@@ -346,7 +349,7 @@ function App() {
                        hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all duration-200 
                        shadow-lg hover:shadow-xl"
             >
-               Novo Jogo
+              Novo Jogo
             </button>
           </div>
         </div>
@@ -394,7 +397,8 @@ function App() {
           )}
         </div>
 
-        <div className="flex-1 min-h-0 flex items-center justify-center">
+        {/* Área dos objetos */}
+        <div className="flex-1 min-h-0 flex items-center justify-center mb-8">
           <div className="w-full h-[calc(100vh-300px)] min-h-[350px] max-h-[500px]">
             <GameArea 
               nivel={nivel}
