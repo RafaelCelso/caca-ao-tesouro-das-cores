@@ -1,7 +1,7 @@
-const ScoreBoard = ({ pontuacao, nivel, corAlvo, melhorPontuacao }) => {
+const ScoreBoard = ({ pontuacao, nivel, corAlvo, melhorPontuacao, niveisConsecutivosSemErro }) => {
   return (
     <div className="bg-white rounded-2xl shadow-lg p-4 mb-2 mt-6">
-      <div className="grid grid-cols-4 gap-4 items-center">
+      <div className="grid grid-cols-5 gap-4 items-center">
         {/* Cor Alvo - Agora maior e mais destacada */}
         <div className="flex flex-col items-center justify-center col-span-1">
           <div 
@@ -36,6 +36,13 @@ const ScoreBoard = ({ pontuacao, nivel, corAlvo, melhorPontuacao }) => {
           <div className="text-2xl">👑</div>
           <div className="text-xl font-bold text-purple-700">{melhorPontuacao}</div>
           <div className="text-xs font-medium text-purple-800">Recorde</div>
+        </div>
+
+        {/* Card de Níveis sem Errar */}
+        <div className="bg-gradient-to-br from-green-100 to-green-200 p-2 rounded-xl text-center shadow-md">
+          <div className="text-2xl">🏆</div>
+          <div className="text-xl font-bold text-green-700">{niveisConsecutivosSemErro}</div>
+          <div className="text-xs font-medium text-green-800">Sequência</div>
         </div>
       </div>
     </div>

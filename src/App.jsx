@@ -220,9 +220,6 @@ function App() {
     setObjetosRestantes(prev => {
       const novosObjetosRestantes = prev - 1;
       if (novosObjetosRestantes <= 0) {
-        if (errosNoNivel === 0) {
-          setNiveisConsecutivosSemErro(prev => prev + 1);
-        }
         setNivel(nivelAtual => {
           setShowLevelUp(true);
           if (!isMuted) {
@@ -231,6 +228,9 @@ function App() {
             } catch (error) {
               console.log('Erro ao tocar som de level up:', error);
             }
+          }
+          if (errosNoNivel === 0) {
+            setNiveisConsecutivosSemErro(prev => prev + 1);
           }
           return nivelAtual + 1;
         });
@@ -335,6 +335,7 @@ function App() {
           nivel={nivel}
           corAlvo={corAlvo}
           melhorPontuacao={melhorPontuacao}
+          niveisConsecutivosSemErro={niveisConsecutivosSemErro}
         />
 
         <ProgressBar 
