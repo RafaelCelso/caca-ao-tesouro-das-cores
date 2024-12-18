@@ -5,6 +5,11 @@ import LevelUpMessage from './components/LevelUpMessage';
 import SoundControl from './components/SoundControl';
 import ProgressBar from './components/ProgressBar';
 import ParticleExplosion from './components/ParticleExplosion';
+import Badges, { BADGES } from './components/Badges';
+import DesafioDiario from './components/DesafioDiario';
+import Vidas, { MAX_VIDAS } from './components/Vidas';
+import ConquistaMessage from './components/ConquistaMessage';
+import GameOverMessage from './components/GameOverMessage';
 import useSound from 'use-sound';
 import { SOUND_URLS } from './config/sounds';
 
@@ -28,9 +33,19 @@ function App() {
   const [isMuted, setIsMuted] = useState(false);
   const [showError, setShowError] = useState(false);
   const [explosions, setExplosions] = useState([]);
+  const [vidas, setVidas] = useState(MAX_VIDAS);
+  const [badges, setBadges] = useState(() => {
+    const savedBadges = localStorage.getItem('badges');
+    return savedBadges ? JSON.parse(savedBadges) : [];
+  });
   const [melhorPontuacao, setMelhorPontuacao] = useState(
     parseInt(localStorage.getItem('melhorPontuacao')) || 0
   );
+  const [showConquista, setShowConquista] = useState(null);
+  const [tempoInicioNivel, setTempoInicioNivel] = useState(Date.now());
+  const [errosNoNivel, setErrosNoNivel] = useState(0);
+  const [niveisConsecutivosSemErro, setNiveisConsecutivosSemErro] = useState(0);
+  const [showGameOver, setShowGameOver] = useState(false);
 
   // Configuração dos sons
   const [playAcerto] = useSound(SOUND_URLS.acerto, { 
@@ -51,18 +66,87 @@ function App() {
     interrupt: true
   });
 
+  const [playConquista] = useSound(SOUND_URLS.conquista, {
+    volume: 0.5,
+    soundEnabled: !isMuted,
+    interrupt: true
+  });
+
   // Inicializa o jogo
   useEffect(() => {
     iniciarNovaRodada();
+    setTempoInicioNivel(Date.now());
+    setErrosNoNivel(0);
   }, [nivel]);
 
-  // Salva a melhor pontuação no localStorage
+  // Salva a melhor pontuação
   useEffect(() => {
     if (pontuacao > melhorPontuacao) {
       setMelhorPontuacao(pontuacao);
       localStorage.setItem('melhorPontuacao', pontuacao.toString());
     }
   }, [pontuacao, melhorPontuacao]);
+
+  // Salva as conquistas
+  useEffect(() => {
+    localStorage.setItem('badges', JSON.stringify(badges));
+  }, [badges]);
+
+  // Verifica conquistas
+  useEffect(() => {
+    const novasBadges = [...badges];
+    let novaConquista = null;
+
+    // Iniciante - primeiro nível
+    if (nivel >= 2 && !badges.includes('iniciante')) {
+      novasBadges.push('iniciante');
+      novaConquista = BADGES.iniciante;
+    }
+
+    // Mestre das Cores - nível 10
+    if (nivel >= 10 && !badges.includes('mestre')) {
+      novasBadges.push('mestre');
+      novaConquista = BADGES.mestre;
+    }
+
+    // Precisão - 15 níveis consecutivos sem erros
+    if (niveisConsecutivosSemErro >= 15 && !badges.includes('precisao')) {
+      novasBadges.push('precisao');
+      novaConquista = BADGES.precisao;
+    }
+
+    // Persistente - verifica dias jogados
+    const diasJogados = localStorage.getItem('diasJogados');
+    if (diasJogados) {
+      const dias = JSON.parse(diasJogados);
+      if (dias.length >= 5 && !badges.includes('persistente')) {
+        novasBadges.push('persistente');
+        novaConquista = BADGES.persistente;
+      }
+    }
+
+    if (novasBadges.length > badges.length) {
+      setBadges(novasBadges);
+      setShowConquista(novaConquista);
+      if (!isMuted) {
+        try {
+          playConquista();
+        } catch (error) {
+          console.log('Erro ao tocar som de conquista:', error);
+        }
+      }
+    }
+  }, [nivel, niveisConsecutivosSemErro, badges, isMuted, playConquista]);
+
+  // Registra dia jogado
+  useEffect(() => {
+    const hoje = new Date().toDateString();
+    const diasJogados = JSON.parse(localStorage.getItem('diasJogados') || '[]');
+    if (!diasJogados.includes(hoje)) {
+      diasJogados.push(hoje);
+      localStorage.setItem('diasJogados', JSON.stringify(diasJogados));
+    }
+  }, []);
 
   const escolherNovaCorAlvo = () => {
     const coresDisponiveis = CORES_DISPONIVEIS.filter(cor => cor.nome !== corAlvo.nome);
@@ -78,6 +162,43 @@ function App() {
     setObjetosTotal(numeroObjetosAlvo);
   };
 
+  const handleDesafioCompleto = (recompensa) => {
+    setPontuacao(prev => prev + recompensa);
+  };
+
+  const verificarDesafios = () => {
+    const desafioSalvo = localStorage.getItem('desafioDiario');
+    if (!desafioSalvo) return;
+
+    const { desafio } = JSON.parse(desafioSalvo);
+    let progresso = 0;
+
+    switch (desafio.id) {
+      case 1: // Complete 3 níveis sem errar
+        if (errosNoNivel === 0) {
+          setNiveisConsecutivosSemErro(prev => {
+            const novosNiveisConsecutivosSemErro = prev + 1;
+            progresso = (novosNiveisConsecutivosSemErro / 3) * 100;
+            return novosNiveisConsecutivosSemErro;
+          });
+        }
+        break;
+
+      case 2: // Alcance 100 pontos em um único nível
+        progresso = (pontuacao / 100) * 100;
+        break;
+
+      case 3: // Complete um nível em menos de 15 segundos
+        const tempoNivel = (Date.now() - tempoInicioNivel) / 1000;
+        if (tempoNivel <= 15) {
+          progresso = 100;
+        }
+        break;
+    }
+
+    return progresso;
+  };
+
   const handleAcerto = (x, y) => {
     if (!isMuted) {
       try {
@@ -87,7 +208,6 @@ function App() {
       }
     }
 
-    // Adiciona explosão de partículas
     const newExplosion = {
       id: Date.now(),
       x,
@@ -100,6 +220,9 @@ function App() {
     setObjetosRestantes(prev => {
       const novosObjetosRestantes = prev - 1;
       if (novosObjetosRestantes <= 0) {
+        if (errosNoNivel === 0) {
+          setNiveisConsecutivosSemErro(prev => prev + 1);
+        }
         setNivel(nivelAtual => {
           setShowLevelUp(true);
           if (!isMuted) {
@@ -126,9 +249,19 @@ function App() {
       }
     }
     
-    // Ativa o efeito de erro
     setShowError(true);
     setTimeout(() => setShowError(false), 500);
+
+    setErrosNoNivel(prev => prev + 1);
+    setNiveisConsecutivosSemErro(0); // Reseta a contagem de níveis consecutivos sem erro
+
+    setVidas(prev => {
+      const novasVidas = prev - 1;
+      if (novasVidas <= 0) {
+        setShowGameOver(true);
+      }
+      return Math.max(0, novasVidas);
+    });
 
     if (pontuacao > 0) {
       setPontuacao(prev => Math.max(0, prev - 5));
@@ -144,6 +277,11 @@ function App() {
     setNivel(1);
     setObjetosRestantes(0);
     setShowLevelUp(false);
+    setVidas(MAX_VIDAS);
+    setErrosNoNivel(0);
+    setNiveisConsecutivosSemErro(0);
+    setTempoInicioNivel(Date.now());
+    setShowGameOver(false);
     iniciarNovaRodada();
   };
 
@@ -161,15 +299,15 @@ function App() {
   }, []);
 
   return (
-    <div className={`h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col
+    <div className={`min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col
                     ${showError ? 'animate-shake' : ''}`}>
       <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
-        {/* Header com título, botão de som e novo jogo */}
+        {/* Header com título, som e novo jogo */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
             🎨 Caça ao Tesouro das Cores
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <SoundControl onToggle={handleSoundToggle} isMuted={isMuted} />
             <button
               onClick={reiniciarJogo}
@@ -181,6 +319,16 @@ function App() {
             </button>
           </div>
         </div>
+
+        <Badges conquistados={badges} />
+        <DesafioDiario 
+          onComplete={handleDesafioCompleto}
+          pontuacao={pontuacao}
+          nivel={nivel}
+          errosNoNivel={errosNoNivel}
+          niveisConsecutivosSemErro={niveisConsecutivosSemErro}
+          tempoInicioNivel={tempoInicioNivel}
+        />
         
         <ScoreBoard 
           pontuacao={pontuacao}
@@ -194,6 +342,13 @@ function App() {
           objetosTotal={objetosTotal}
         />
 
+        {/* Área de vidas */}
+        <div className="mb-4 flex justify-end">
+          <div className="transform hover:scale-105 transition-transform">
+            <Vidas vidas={vidas} />
+          </div>
+        </div>
+
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="w-full h-[calc(100vh-300px)] min-h-[350px] max-h-[500px]">
             <GameArea 
@@ -206,7 +361,6 @@ function App() {
           </div>
         </div>
 
-        {/* Explosões de partículas */}
         {explosions.map(explosion => (
           <ParticleExplosion
             key={explosion.id}
@@ -224,7 +378,21 @@ function App() {
           />
         )}
 
-        {/* Flash de erro */}
+        {showConquista && (
+          <ConquistaMessage
+            badge={showConquista}
+            onClose={() => setShowConquista(null)}
+          />
+        )}
+
+        {showGameOver && (
+          <GameOverMessage
+            pontuacao={pontuacao}
+            melhorPontuacao={melhorPontuacao}
+            onJogarNovamente={reiniciarJogo}
+          />
+        )}
+
         {showError && (
           <div className="fixed inset-0 bg-red-500 opacity-30 pointer-events-none animate-flash" />
         )}

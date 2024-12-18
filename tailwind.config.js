@@ -19,6 +19,12 @@ export default {
         'scale-up': 'scaleUp 0.5s ease-out',
         'shine': 'shine 2s linear infinite',
         'particle': 'particle 0.5s ease-out forwards',
+        'spin-slow': 'spin 3s linear infinite',
+        'bounce-slow': 'bounce 2s infinite',
+        'pulse-slow': 'pulse 3s infinite',
+        'flash': 'flash 0.5s',
+        'shake': 'shake 0.5s',
+        'dropIn': 'dropIn 0.5s ease-out',
       },
       keyframes: {
         scaleUp: {
@@ -38,7 +44,26 @@ export default {
             transform: 'translate(var(--tx), var(--ty)) scale(0)',
             opacity: '0'
           }
-        }
+        },
+        flash: {
+          '0%, 100%': { opacity: '0' },
+          '50%': { opacity: '1' },
+        },
+        shake: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-5px)' },
+          '75%': { transform: 'translateX(5px)' },
+        },
+        dropIn: {
+          '0%': { 
+            transform: 'translateY(-100%)',
+            opacity: '0'
+          },
+          '100%': { 
+            transform: 'translateY(0)',
+            opacity: '1'
+          },
+        },
       }
     },
   },
