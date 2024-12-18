@@ -374,10 +374,16 @@ function App() {
           objetosTotal={objetosTotal}
         />
 
-        {/* Área de vidas */}
-        <div className="mb-4 flex flex-wrap justify-end items-center gap-2">
-          {tempoRestante > 0 && !showGameOver && (
+        {/* Área de vidas e timer */}
+        <div className="mb-4 flex flex-col gap-2">
+          <div className="flex justify-end">
             <div className="transform hover:scale-105 transition-transform">
+              <Vidas vidas={vidas} vidasBonus={vidasBonus} />
+            </div>
+          </div>
+          
+          {tempoRestante > 0 && !showGameOver && (
+            <div className="transform hover:scale-105 transition-transform w-full">
               <BonusTimer 
                 tempoInicial={tempoInicioNivel}
                 isPaused={timerPausado}
@@ -386,9 +392,6 @@ function App() {
               />
             </div>
           )}
-          <div className="transform hover:scale-105 transition-transform">
-            <Vidas vidas={vidas} vidasBonus={vidasBonus} />
-          </div>
         </div>
 
         <div className="flex-1 min-h-0 flex items-center justify-center">

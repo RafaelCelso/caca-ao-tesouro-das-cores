@@ -28,22 +28,22 @@ const BonusTimer = ({ tempoInicial, isPaused, nivel, vidasBonus }) => {
   if (tempoRestante <= 0 || nivel < NIVEL_MIN_BONUS || vidasBonus >= MAX_VIDAS_BONUS) return null;
 
   return (
-    <div className="bg-white/30 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg flex items-center gap-2">
-      <div className="flex items-center gap-1">
-        <span className="text-lg sm:text-base">💖</span>
-        <span className="hidden sm:inline font-bold text-pink-600 text-sm">
-          Bônus em:
+    <div className="bg-white/30 backdrop-blur-sm px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 w-full">
+      <div className="flex items-center gap-2">
+        <span className="text-xl">💖</span>
+        <span className="font-bold text-pink-600 text-base">
+          Vida Bônus em:
         </span>
       </div>
       
-      <div className="w-20 sm:w-24 h-3 sm:h-2.5 bg-white/50 rounded-full overflow-hidden">
+      <div className="flex-1 h-4 bg-white/50 rounded-full overflow-hidden">
         <div 
           className="h-full bg-gradient-to-r from-pink-500 to-purple-500 transition-all duration-100"
           style={{ width: `${porcentagem}%` }}
         />
       </div>
       
-      <span className="font-bold text-purple-600 min-w-[2.25rem] text-right text-base sm:text-sm">
+      <span className="font-bold text-purple-600 min-w-[3rem] text-right text-lg">
         {tempoRestante.toFixed(1)}s
       </span>
     </div>
