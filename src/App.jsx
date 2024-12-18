@@ -3,6 +3,8 @@ import GameArea from './components/GameArea';
 import ScoreBoard from './components/ScoreBoard';
 import LevelUpMessage from './components/LevelUpMessage';
 import SoundControl from './components/SoundControl';
+import ProgressBar from './components/ProgressBar';
+import ParticleExplosion from './components/ParticleExplosion';
 import useSound from 'use-sound';
 import { SOUND_URLS } from './config/sounds';
 
@@ -21,17 +23,20 @@ function App() {
   const [nivel, setNivel] = useState(1);
   const [corAlvo, setCorAlvo] = useState(CORES_DISPONIVEIS[0]);
   const [objetosRestantes, setObjetosRestantes] = useState(0);
+  const [objetosTotal, setObjetosTotal] = useState(0);
   const [showLevelUp, setShowLevelUp] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [explosions, setExplosions] = useState([]);
   const [melhorPontuacao, setMelhorPontuacao] = useState(
     parseInt(localStorage.getItem('melhorPontuacao')) || 0
   );
 
-  // Configuração dos sons com volume ajustado e tratamento de erro
+  // Configuração dos sons
   const [playAcerto] = useSound(SOUND_URLS.acerto, { 
     volume: 0.5,
     soundEnabled: !isMuted,
-    interrupt: true // Permite interromper o som se for tocado novamente
+    interrupt: true
   });
   
   const [playErro] = useSound(SOUND_URLS.erro, { 
@@ -70,25 +75,39 @@ function App() {
     setCorAlvo(novaCorAlvo);
     const numeroObjetosAlvo = Math.max(3, Math.floor((5 + nivel * 3) * 0.3));
     setObjetosRestantes(numeroObjetosAlvo);
+    setObjetosTotal(numeroObjetosAlvo);
   };
 
-  const handleAcerto = () => {
-    try {
-      playAcerto();
-    } catch (error) {
-      console.log('Erro ao tocar som de acerto:', error);
+  const handleAcerto = (x, y) => {
+    if (!isMuted) {
+      try {
+        playAcerto();
+      } catch (error) {
+        console.log('Erro ao tocar som de acerto:', error);
+      }
     }
+
+    // Adiciona explosão de partículas
+    const newExplosion = {
+      id: Date.now(),
+      x,
+      y,
+      color: corAlvo.hex
+    };
+    setExplosions(prev => [...prev, newExplosion]);
+
     setPontuacao(prev => prev + 10);
     setObjetosRestantes(prev => {
       const novosObjetosRestantes = prev - 1;
       if (novosObjetosRestantes <= 0) {
-        // Quando todos os objetos da cor foram encontrados
         setNivel(nivelAtual => {
           setShowLevelUp(true);
-          try {
-            playLevelUp();
-          } catch (error) {
-            console.log('Erro ao tocar som de level up:', error);
+          if (!isMuted) {
+            try {
+              playLevelUp();
+            } catch (error) {
+              console.log('Erro ao tocar som de level up:', error);
+            }
           }
           return nivelAtual + 1;
         });
@@ -99,14 +118,25 @@ function App() {
   };
 
   const handleErro = () => {
-    try {
-      playErro();
-    } catch (error) {
-      console.log('Erro ao tocar som de erro:', error);
+    if (!isMuted) {
+      try {
+        playErro();
+      } catch (error) {
+        console.log('Erro ao tocar som de erro:', error);
+      }
     }
+    
+    // Ativa o efeito de erro
+    setShowError(true);
+    setTimeout(() => setShowError(false), 500);
+
     if (pontuacao > 0) {
       setPontuacao(prev => Math.max(0, prev - 5));
     }
+  };
+
+  const handleExplosionComplete = (id) => {
+    setExplosions(prev => prev.filter(exp => exp.id !== id));
   };
 
   const reiniciarJogo = () => {
@@ -131,7 +161,8 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col">
+    <div className={`h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-2 md:p-4 flex flex-col
+                    ${showError ? 'animate-shake' : ''}`}>
       <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col">
         {/* Header com título, botão de som e novo jogo */}
         <div className="flex justify-between items-center mb-4">
@@ -139,7 +170,7 @@ function App() {
             🎨 Caça ao Tesouro das Cores
           </h1>
           <div className="flex items-center gap-2">
-            <SoundControl onToggle={handleSoundToggle} />
+            <SoundControl onToggle={handleSoundToggle} isMuted={isMuted} />
             <button
               onClick={reiniciarJogo}
               className="px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm font-bold rounded-full 
@@ -158,6 +189,11 @@ function App() {
           melhorPontuacao={melhorPontuacao}
         />
 
+        <ProgressBar 
+          objetosRestantes={objetosRestantes}
+          objetosTotal={objetosTotal}
+        />
+
         <div className="flex-1 min-h-0 flex items-center justify-center">
           <div className="w-full h-[calc(100vh-300px)] min-h-[350px] max-h-[500px]">
             <GameArea 
@@ -170,11 +206,27 @@ function App() {
           </div>
         </div>
 
+        {/* Explosões de partículas */}
+        {explosions.map(explosion => (
+          <ParticleExplosion
+            key={explosion.id}
+            x={explosion.x}
+            y={explosion.y}
+            color={explosion.color}
+            onComplete={() => handleExplosionComplete(explosion.id)}
+          />
+        ))}
+
         {showLevelUp && (
           <LevelUpMessage 
             nivel={nivel} 
             onClose={() => setShowLevelUp(false)} 
           />
+        )}
+
+        {/* Flash de erro */}
+        {showError && (
+          <div className="fixed inset-0 bg-red-500 opacity-30 pointer-events-none animate-flash" />
         )}
       </div>
     </div>

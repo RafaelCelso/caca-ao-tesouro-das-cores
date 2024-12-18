@@ -3,7 +3,6 @@ import { useState, useEffect, useRef } from 'react';
 const ObjectItem = ({ objeto, onClick, nivel, objetosRef, updateObjectPosition }) => {
   const [animating, setAnimating] = useState(false);
   
-  // Define a forma do objeto uma única vez
   const forma = useRef({
     shape: ['rounded-full', 'rounded-lg', 'rounded-3xl'][Math.floor(Math.random() * 3)],
     shadow: 'shadow-lg'
@@ -14,78 +13,43 @@ const ObjectItem = ({ objeto, onClick, nivel, objetosRef, updateObjectPosition }
     left: objeto.posicao.left
   });
 
-  const direction = useRef({
-    x: (Math.random() * 2 - 1) * 0.4, // Velocidade inicial muito maior
-    y: (Math.random() * 2 - 1) * 0.4
+  const velocidade = useRef({
+    x: (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.3),
+    y: (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.3)
   });
 
-  // Velocidade base significativamente aumentada
-  const speed = useRef(0.2 + Math.random() * 0.1);
   const tamanho = Math.max(35, 70 - nivel * 2);
 
-  // Registra o objeto no Map de referências
   useEffect(() => {
-    objetosRef.current.set(objeto.id, {
-      position,
-      direction: direction.current
-    });
-    return () => {
-      objetosRef.current.delete(objeto.id);
-    };
-  }, []);
-
-  useEffect(() => {
-    let lastTime = performance.now();
-    let frameId;
-    
-    const animate = (currentTime) => {
-      const deltaTime = Math.min((currentTime - lastTime) / 16, 1.5);
-      lastTime = currentTime;
-
+    const moveObject = () => {
       setPosition(currentPos => {
-        let newX = currentPos.left;
-        let newY = currentPos.top;
+        let newX = currentPos.left + velocidade.current.x;
+        let newY = currentPos.top + velocidade.current.y;
 
-        // Movimento suavizado com deltaTime
-        newX += direction.current.x * speed.current * deltaTime;
-        newY += direction.current.y * speed.current * deltaTime;
-
-        // Colisão com as bordas mantendo mais velocidade
-        if (newX <= 15 || newX >= 85) {
-          direction.current.x *= -0.95; // Mantém mais velocidade após colisão
-          newX = Math.max(15, Math.min(85, newX));
+        if (newX <= 5 || newX >= 95) {
+          velocidade.current.x *= -1;
+          newX = Math.max(5, Math.min(95, newX));
         }
-        if (newY <= 15 || newY >= 85) {
-          direction.current.y *= -0.95; // Mantém mais velocidade após colisão
-          newY = Math.max(15, Math.min(85, newY));
+        if (newY <= 5 || newY >= 95) {
+          velocidade.current.y *= -1;
+          newY = Math.max(5, Math.min(95, newY));
         }
 
-        const newPosition = {
-          top: newY,
-          left: newX
-        };
-
-        // Atualiza a posição no sistema de colisão
-        updateObjectPosition(objeto.id, newPosition, direction.current);
-
+        const newPosition = { top: newY, left: newX };
+        updateObjectPosition(objeto.id, newPosition, velocidade.current);
         return newPosition;
       });
-
-      frameId = requestAnimationFrame(animate);
     };
 
-    frameId = requestAnimationFrame(animate);
+    const intervalId = setInterval(moveObject, 33);
 
-    return () => {
-      if (frameId) {
-        cancelAnimationFrame(frameId);
-      }
-    };
+    return () => clearInterval(intervalId);
   }, [objeto.id, updateObjectPosition]);
 
-  const handleClick = () => {
+  const handleClick = (event) => {
+    event.stopPropagation();
     setAnimating(true);
-    onClick();
+    onClick(event);
   };
 
   useEffect(() => {
@@ -97,7 +61,7 @@ const ObjectItem = ({ objeto, onClick, nivel, objetosRef, updateObjectPosition }
 
   return (
     <div
-      className={`absolute cursor-pointer transition-transform duration-100 
+      className={`absolute cursor-pointer transition-all duration-50 ease-linear
         ${forma.current.shape} ${forma.current.shadow}
         ${animating ? 'scale-110 brightness-110' : 'hover:scale-105 hover:brightness-105'}
         transform-gpu`}
@@ -112,6 +76,7 @@ const ObjectItem = ({ objeto, onClick, nivel, objetosRef, updateObjectPosition }
                     inset 0 -4px 4px rgba(0,0,0,0.1), 
                     inset 0 4px 4px rgba(255,255,255,0.3)`,
         willChange: 'transform, left, top',
+        zIndex: animating ? 10 : 1
       }}
       onClick={handleClick}
     >
